@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  address      String
+  city         String
+  province     String
+  phone        String?
+  whatsapp     String?
+  latitude     Float?
+  longitude    Float?
+  rating       Float    @default(0)
+  reviewCount  Int      @default(0)
+  instagram    String?
+  description  String?
+  openingHours String?  // JSON string: { mon: "10:00-22:00", ... }
+  services     String?  // JSON string: ["delivery", "in-store pickup", ...]
+  googleMapsUrl String?
+  placeId      String?
+  logoUrl      String?
+  imageUrl     String?
+  isVerified   Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([city])
+  @@index([province])
+  @@index([slug])
+}
+
+model City {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  province    String
+  storeCount  Int      @default(0)
+}
+
+model Province {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  storeCount  Int      @default(0)
+}

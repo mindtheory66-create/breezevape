@@ -1,6 +1,10 @@
 import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/db'
 
+// Memastikan sitemap akan di-refresh secara berkala di Vercel (contoh: setiap 1 hari sekali / 86400 detik)
+// Agar toko-toko baru yang di-submit masuk ke dalam sitemap.
+export const revalidate = 86400;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const stores = await prisma.store.findMany({ select: { slug: true, updatedAt: true } })
     const cities = await prisma.city.findMany({ select: { slug: true } })

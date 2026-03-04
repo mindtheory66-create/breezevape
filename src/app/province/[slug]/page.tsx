@@ -10,31 +10,55 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
-    const province = await prisma.province.findUnique({ where: { slug } });
+    try {
+        const province = await prisma.province.findUnique({ where: { slug } });
 
-    if (!province) return { title: "Provinsi Tidak Ditemukan" };
+        if (!province) return { title: "Provinsi Tidak Ditemukan" };
 
-    return {
-        title: `Vape Store di ${province.name} - Direktori Vapor Indonesia | Breeze Vape`,
-        description: `Daftar lengkap toko vapor di wilayah ${province.name}. Cek alamat, kota, dan rating toko vape terbaik di ${province.name} melalui Breeze Vape Directory.`,
-    };
+        return {
+            title: `Vape Store di ${province.name} - Direktori Vapor Indonesia | Breeze Vape`,
+            description: `Daftar lengkap toko vapor di wilayah ${province.name}. Cek alamat, kota, dan rating toko vape terbaik di ${province.name} melalui Breeze Vape Directory.`,
+        };
+    } catch {
+        return { title: "Breeze Vape Directory" };
+    }
 }
 
 export default async function ProvincePage({ params }: Props) {
     const { slug } = await params;
-    const province = await prisma.province.findUnique({ where: { slug } });
 
-    if (!province) notFound();
+    let province;
+    let stores: Awaited<ReturnType<typeof prisma.store.findMany>> = [];
+    let citiesInProvince: Awaited<ReturnType<typeof prisma.city.findMany>> = [];
 
-    const stores = await prisma.store.findMany({
-        where: { province: province.name },
-        orderBy: { rating: "desc" },
-    });
+    try {
+        province = await prisma.province.findUnique({ where: { slug } });
+        if (!province) notFound();
 
-    const citiesInProvince = await prisma.city.findMany({
-        where: { province: province.name },
-        orderBy: { name: "asc" },
-    });
+        [stores, citiesInProvince] = await Promise.all([
+            prisma.store.findMany({
+                where: { province: province.name },
+                orderBy: { rating: "desc" },
+            }),
+            prisma.city.findMany({
+                where: { province: province.name },
+                orderBy: { name: "asc" },
+            }),
+        ]);
+    } catch (error) {
+        console.error("ProvincePage: Gagal mengambil data", error);
+        return (
+            <div className="min-h-screen bg-[#0D0D0D] pt-24 md:pt-32 pb-32 px-6">
+                <div className="max-w-7xl mx-auto px-6 text-center py-32">
+                    <h1 className="text-4xl font-orbitron font-extrabold text-white mb-8">Koneksi Terputus</h1>
+                    <p className="text-gray-500 font-space mb-10">Kami sedang mengalami kendala koneksi ke server. Silakan coba lagi nanti.</p>
+                    <Link href="/" className="bg-neon-cyan text-black px-8 py-3 rounded-lg font-black tracking-widest uppercase text-xs">
+                        Kembali ke Home
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#0D0D0D] pt-24 md:pt-32 pb-32 px-6">

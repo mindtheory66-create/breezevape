@@ -24,28 +24,38 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
     };
 }
 
+async function getDirectoryData(q?: string, city?: string, province?: string) {
+    try {
+        const [stores, cities, provinces] = await Promise.all([
+            prisma.store.findMany({
+                where: {
+                    OR: q ? [
+                        { name: { contains: q } },
+                        { address: { contains: q } },
+                        { description: { contains: q } },
+                    ] : undefined,
+                    city: city || undefined,
+                    province: province || undefined,
+                },
+                orderBy: { rating: "desc" },
+            }),
+            prisma.city.findMany({ orderBy: { name: "asc" } }),
+            prisma.province.findMany({ orderBy: { name: "asc" } }),
+        ]);
+        return { stores, cities, provinces, error: false };
+    } catch (error) {
+        console.error("DirectoryPage: Gagal mengambil data", error);
+        return { stores: [], cities: [], provinces: [], error: true };
+    }
+}
+
 export default async function DirectoryPage({
     searchParams,
 }: {
     searchParams: Promise<{ q?: string; city?: string; province?: string }>;
 }) {
     const { q, city, province } = await searchParams;
-
-    const stores = await prisma.store.findMany({
-        where: {
-            OR: q ? [
-                { name: { contains: q } },
-                { address: { contains: q } },
-                { description: { contains: q } },
-            ] : undefined,
-            city: city || undefined,
-            province: province || undefined,
-        },
-        orderBy: { rating: "desc" },
-    });
-
-    const cities = await prisma.city.findMany({ orderBy: { name: "asc" } });
-    const provinces = await prisma.province.findMany({ orderBy: { name: "asc" } });
+    const { stores, cities, provinces, error } = await getDirectoryData(q, city, province);
 
     const jsonLd = {
         "@context": "https://schema.org",
@@ -71,6 +81,15 @@ export default async function DirectoryPage({
                         <SearchBar />
                     </div>
                 </div>
+
+                {error && (
+                    <div className="py-16 text-center glass rounded-[3rem] border border-dashed border-neon-pink/20 mb-12">
+                        <h3 className="text-white font-orbitron font-bold text-xl mb-4">Koneksi Terputus</h3>
+                        <p className="text-gray-500 max-w-sm mx-auto">
+                            Kami sedang mengalami kendala koneksi ke server. Silakan coba lagi dalam beberapa saat.
+                        </p>
+                    </div>
+                )}
 
                 <div className="flex flex-col lg:flex-row gap-12 mt-16">
                     {/* Sidebar Filters */}

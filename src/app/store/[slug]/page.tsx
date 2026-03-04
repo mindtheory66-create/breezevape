@@ -10,33 +10,54 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
-    const store = await prisma.store.findUnique({ where: { slug } });
+    try {
+        const store = await prisma.store.findUnique({ where: { slug } });
 
-    if (!store) return { title: "Toko Tidak Ditemukan" };
+        if (!store) return { title: "Toko Tidak Ditemukan" };
 
-    return {
-        title: `${store.name} - ${store.city} | Breeze Vape Directory`,
-        description: store.description || `Lihat katalog, lokasi lengkap, dan review ${store.name} di kawasan ${store.province}.`,
-        alternates: {
-            canonical: `/store/${store.slug}`
-        }
-    };
+        return {
+            title: `${store.name} - ${store.city} | Breeze Vape Directory`,
+            description: store.description || `Lihat katalog, lokasi lengkap, dan review ${store.name} di kawasan ${store.province}.`,
+            alternates: {
+                canonical: `/store/${store.slug}`
+            }
+        };
+    } catch {
+        return { title: "Breeze Vape Directory" };
+    }
 }
 
 export default async function StoreDetailPage({ params }: Props) {
     const { slug } = await params;
-    const store = await prisma.store.findUnique({ where: { slug } });
 
-    if (!store) notFound();
+    let store;
+    let nearbyStores: Awaited<ReturnType<typeof prisma.store.findMany>> = [];
 
-    // Fetch nearby stores in the same city
-    const nearbyStores = await prisma.store.findMany({
-        where: {
-            city: store.city,
-            NOT: { id: store.id }
-        },
-        take: 3,
-    });
+    try {
+        store = await prisma.store.findUnique({ where: { slug } });
+        if (!store) notFound();
+
+        nearbyStores = await prisma.store.findMany({
+            where: {
+                city: store.city,
+                NOT: { id: store.id }
+            },
+            take: 3,
+        });
+    } catch (error) {
+        console.error("StoreDetailPage: Gagal mengambil data", error);
+        return (
+            <div className="min-h-screen bg-[#0D0D0D] pt-24 md:pt-32 pb-32 px-6">
+                <div className="max-w-7xl mx-auto px-6 text-center py-32">
+                    <h1 className="text-4xl font-orbitron font-extrabold text-white mb-8">Koneksi Terputus</h1>
+                    <p className="text-gray-500 font-space mb-10">Kami sedang mengalami kendala koneksi ke server. Silakan coba lagi nanti.</p>
+                    <Link href="/" className="bg-neon-cyan text-black px-8 py-3 rounded-lg font-black tracking-widest uppercase text-xs">
+                        Kembali ke Home
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     // JSON-LD LocalBusiness Schema
     const jsonLd = {

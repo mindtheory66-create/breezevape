@@ -10,26 +10,48 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
-    const city = await prisma.city.findUnique({ where: { slug } });
+    try {
+        const city = await prisma.city.findUnique({ where: { slug } });
 
-    if (!city) return { title: "Kota Tidak Ditemukan" };
+        if (!city) return { title: "Kota Tidak Ditemukan" };
 
-    return {
-        title: `Vape Store ${city.name} - Daftar Toko Vapor Terdekat | Breeze Vape Directory`,
-        description: `Cari toko vape terbaik di ${city.name}. Temukan alamat, rating, dan kontak toko vapor terlengkap di ${city.name} hanya di Breeze Vape Store Directory.`,
-    };
+        return {
+            title: `Vape Store ${city.name} - Daftar Toko Vapor Terdekat | Breeze Vape Directory`,
+            description: `Cari toko vape terbaik di ${city.name}. Temukan alamat, rating, dan kontak toko vapor terlengkap di ${city.name} hanya di Breeze Vape Store Directory.`,
+        };
+    } catch {
+        return { title: "Breeze Vape Directory" };
+    }
 }
 
 export default async function CityPage({ params }: Props) {
     const { slug } = await params;
-    const city = await prisma.city.findUnique({ where: { slug } });
 
-    if (!city) notFound();
+    let city;
+    let stores: Awaited<ReturnType<typeof prisma.store.findMany>> = [];
 
-    const stores = await prisma.store.findMany({
-        where: { city: city.name },
-        orderBy: { rating: "desc" },
-    });
+    try {
+        city = await prisma.city.findUnique({ where: { slug } });
+        if (!city) notFound();
+
+        stores = await prisma.store.findMany({
+            where: { city: city.name },
+            orderBy: { rating: "desc" },
+        });
+    } catch (error) {
+        console.error("CityPage: Gagal mengambil data", error);
+        return (
+            <div className="min-h-screen bg-[#0D0D0D] pt-24 md:pt-32 pb-32 px-6">
+                <div className="max-w-7xl mx-auto px-6 text-center py-32">
+                    <h1 className="text-4xl font-orbitron font-extrabold text-white mb-8">Koneksi Terputus</h1>
+                    <p className="text-gray-500 font-space mb-10">Kami sedang mengalami kendala koneksi ke server. Silakan coba lagi nanti.</p>
+                    <Link href="/" className="bg-neon-cyan text-black px-8 py-3 rounded-lg font-black tracking-widest uppercase text-xs">
+                        Kembali ke Home
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#0D0D0D] pt-24 md:pt-32 pb-32 px-6">

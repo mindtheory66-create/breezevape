@@ -2,11 +2,34 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ArrowRight, MapPin } from "lucide-react";
 
+async function getCities() {
+    try {
+        return await prisma.city.findMany({
+            take: 6,
+            orderBy: { storeCount: "desc" },
+        });
+    } catch (error) {
+        console.error("CityGrid: Gagal mengambil data kota", error);
+        return [];
+    }
+}
+
 export default async function CityGrid() {
-    const cities = await prisma.city.findMany({
-        take: 6,
-        orderBy: { storeCount: "desc" },
-    });
+    const cities = await getCities();
+
+    if (cities.length === 0) {
+        return (
+            <section className="py-24 px-6 relative overflow-hidden bg-[#0D0D0D]">
+                <div className="max-w-7xl mx-auto text-center">
+                    <span className="text-neon-cyan font-bold text-[10px] tracking-widest uppercase mb-4 inline-block">Destinasi Populer</span>
+                    <h2 className="text-4xl md:text-5xl font-orbitron font-extrabold text-white leading-tight mb-8">
+                        KOTA VAPOR <span className="text-neon-pink">TERPOPULER</span>
+                    </h2>
+                    <p className="text-gray-500 font-space">Data kota sedang dimuat ulang. Silakan coba lagi nanti.</p>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="py-24 px-6 relative overflow-hidden bg-[#0D0D0D]">

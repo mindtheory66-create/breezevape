@@ -2,11 +2,34 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Star, MapPin, Instagram, ExternalLink } from "lucide-react";
 
+async function getStores() {
+    try {
+        return await prisma.store.findMany({
+            take: 4,
+            orderBy: { rating: "desc" },
+        });
+    } catch (error) {
+        console.error("StoreGrid: Gagal mengambil data toko", error);
+        return [];
+    }
+}
+
 export default async function StoreGrid() {
-    const stores = await prisma.store.findMany({
-        take: 4,
-        orderBy: { rating: "desc" },
-    });
+    const stores = await getStores();
+
+    if (stores.length === 0) {
+        return (
+            <section className="py-24 px-6 relative overflow-hidden bg-[#0D0D0D]">
+                <div className="max-w-7xl mx-auto text-center">
+                    <span className="text-neon-pink font-bold text-[10px] tracking-widest uppercase mb-4 inline-block tracking-[0.4em]">Performa Tinggi</span>
+                    <h2 className="text-4xl md:text-5xl font-orbitron font-extrabold text-white leading-tight mb-8">
+                        TOKO <span className="text-neon-cyan italic">UNGGULAN</span>
+                    </h2>
+                    <p className="text-gray-500 font-space">Data toko sedang dimuat ulang. Silakan coba lagi nanti.</p>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="py-24 px-6 relative overflow-hidden bg-[#0D0D0D]">
